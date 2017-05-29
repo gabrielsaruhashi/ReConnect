@@ -3,10 +3,26 @@ var app = express()
 const exphbs = require('express-handlebars');
 const bodyParser = require('body-parser');
 
-// setup app
-const host = process.env.IP || '0.0.0.0';
-const port = process.env.PORT || 8000;
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
 
+const mongoose = require('mongoose');
+const env = require('dotenv').config();
+
+const validator = require('validator');
+
+mongoose.connect(process.env.MONGO_URL);
+
+
+const Mailist = require('./models/mailist.js');
+const Admin = require('./models/admin.js');
+
+
+// Configure our app
+const store = new MongoDBStore({
+  uri: process.env.MONGO_URL,
+  collection: 'sessions',
+});
 app.engine('handlebars', exphbs({
   defaultLayout: 'main',
 }));
@@ -20,30 +36,73 @@ app.use(bodyParser.urlencoded({
 
 app.get('/', function (req, res) {
   res.render('index', {
-  	mainpage: 1
+  	mainpage: true
+  });
+});
+
+app.post('/', (req, res) => {
+
+  const email = req.body.email;
+  console.log(email);
+
+  if(!req.body.email || req.body.email.length === 0 || 
+    req.body.email.length > 50 ) {
+
+    res.locals.errors = ["Error Registering You"];
+  }
+
+
+  if (!validator.isEmail(email)) {
+    res.locals.errors = ["Check your email"];
+  }
+
+
+  var newEmail = new Mailist();
+  newEmail.email = req.body.email;
+
+  console.log("Tá indo");
+  newEmail.save(function(err, user){
+    
+    if(err || !user) {
+      console.log("Erro no Save");
+      res.render('index', { errors: 'Error saving task to the database.'} );
+    } else {
+      console.log("Sucesso");
+      res.redirect('/');
+    }
   });
 });
 
 app.get('/newcomer', function (req, res) {
-  res.render('newcomer', {
-  	other_page: 1
-  });
+  res.render('newcomer'); 
+});
+
+app.get('/hostfriend', function (req, res) {
+  res.render('hostfriend'); 
 });
 
 app.get('/blog', function (req, res) {
   res.render('blog', {
-  	blog: 1
+  	blog: true
+  });
+});
+
+app.get('/admin', function (req, res) {
+  res.render('blog', {
+    admin: true
+  });
+});
+
+app.get('/donate', function (req, res) {
+  res.render('donate', {
+    shop: true
   });
 });
 
 
 app.use(express.static(__dirname + '/assets'));
 
-// server start
-const server = app.listen(port, host, function () {
-  console.log(
-    'Example app listening at http://%s:%s',
-    server.address().address,
-    server.address().port
-  );
+// Start the server
+app.listen(process.env.PORT, () => {
+  console.log(`Example app listening on port ${process.env.PORT}`);
 });
