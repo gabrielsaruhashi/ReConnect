@@ -5,11 +5,12 @@ const bodyParser = require('body-parser');
 
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
-
 const mongoose = require('mongoose');
 const env = require('dotenv').config();
 
 const validator = require('validator');
+const nodemailer = require('nodemailer');
+
 
 mongoose.connect(process.env.MONGO_URL);
 
@@ -41,7 +42,6 @@ app.get('/', function (req, res) {
 });
 
 app.post('/', (req, res) => {
-
   const email = req.body.email;
   console.log(email);
 
@@ -95,26 +95,64 @@ app.get('/admin', function (req, res) {
 
 app.get('/donate', function (req, res) {
   res.render('donate', {
-    shop: true
+    
   });
 });
 
 app.get('/about', function (req, res) {
   res.render('about', {
-    shop: true
+    
   });
 });
 
 app.get('/supportus', function (req, res) {
   res.render('supportus', {
-    mainpage: true
   });
 });
 
+app.get('/contact', function (req, res) {
+  res.render('contact', {
+  });
+});
+
+app.post('/contact', function (req, res) {
+  var mailOpts, smtpTrans;
+  //Setup Nodemailer transport, I chose gmail. Create an application-specific password to avoid problems.
+  smtpTrans = nodemailer.createTransport( {
+      service: 'Gmail',
+      auth: {
+          user: "-",
+          pass: "-" 
+      }
+  });
+  //Mail options
+  mailOpts = {
+      from: req.body.name + ' &lt;' + req.body.email + '&gt;', //grab form data from the request body object
+      to: 'gabriel.saruhashi@gmail.com',
+      subject: 'Website contact form',
+      text: req.body.message
+  };
+  console.log(req.body.message);
+  console.log(req.body.name);
+  console.log(req.body.email);
+  smtpTrans.sendMail(mailOpts, function (error, response) {
+      //Email not sent
+      if (error) {
+          res.render('contact', { title: 'Raging Flame Laboratory - Contact', msg: 'Error occured, message not sent.', err: true, page: 'contact' })
+          console.log('Failure');
+      }
+      //Yay!! Email sent
+      else {
+          res.render('contact', { title: 'Raging Flame Laboratory - Contact', msg: 'Message sent! Thank you.', err: false, page: 'contact' })
+          console.log("success");
+      }
+  });
+});
 
 app.use(express.static(__dirname + '/assets'));
 
 // Start the server
 app.listen(process.env.PORT, () => {
   console.log(`Example app listening on port ${process.env.PORT}`);
+  console.log(`http://127.0.0.1:${process.env.PORT}`);
 });
