@@ -99,6 +99,18 @@ app.get('/donate', function (req, res) {
   });
 });
 
+app.get('/about', function (req, res) {
+  res.render('about', {
+    shop: true
+  });
+});
+
+app.get('/supportus', function (req, res) {
+  res.render('supportus', {
+    mainpage: true
+  });
+});
+
 
 app.use(express.static(__dirname + '/assets'));
 
